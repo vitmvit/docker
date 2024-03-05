@@ -1,0 +1,113 @@
+version: '3.7'
+
+networks:
+  news_net:
+    name: news_net
+    driver: bridge
+
+volumes:
+  postgres:
+
+services:
+  adminer:
+    container_name: adminer
+    build:
+      context: ./adminer
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      ADMINER_DESIGN: 'pappu687'
+      POSTRGRES_HOST: postgres_host
+    networks:
+      - news_net
+    ports:
+      - 80:8080
+    links:
+      - postgres:postgres_host
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    environment:
+      - LC_ALL=C.UTF-8
+      - POSTGRES_DB=news_management
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_PORT=5432
+    networks:
+      - news_net
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+  core-service:
+    container_name: core-service
+    build:
+      context: ../core-service
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    restart: always
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - postgres
+    networks:
+      - news_net
+  auth-service:
+    container_name: auth-service
+    build:
+      context: ../auth-service
+      dockerfile: Dockerfile
+    ports:
+      - 8081:8081
+    restart: always
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - postgres
+      - core-service
+    networks:
+      - news_net
+  news-service:
+    container_name: news-service
+    build:
+      context: ../news-service
+      dockerfile: Dockerfile
+    ports:
+      - 8082:8082
+    restart: always
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - postgres
+      - core-service
+      - auth-service
+      - redis
+    networks:
+      - news_net
+  comments-service:
+    container_name: comments-service
+    build:
+      context: ../comments-service
+      dockerfile: Dockerfile
+    ports:
+      - 8083:8083
+    restart: always
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - postgres
+      - core-service
+      - auth-service
+      - redis
+    networks:
+      - news_net
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379
+    environment:
+      - REDIS_PASSWORD=root
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=16
