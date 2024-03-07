@@ -11,4 +11,5 @@
 - auth-service
 - comment-service
 - news-service
+- spring-cloud-service
 - redis
